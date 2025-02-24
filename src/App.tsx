@@ -29,7 +29,7 @@ function Toast({ message, isVisible, onClose }) {
 }
 
 // Extracted QuestionList component
-function QuestionList({ questions, loading }) {
+function QuestionList({ questions, loading, onLoadMore }) {
   if (loading) {
     return (
       <div className="text-center text-gray-500 py-8">
@@ -58,11 +58,17 @@ function QuestionList({ questions, loading }) {
           </Link>
         </div>
       ))}
+      <button
+        className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition"
+        onClick={onLoadMore}
+      >
+        Load More
+      </button>
     </div>
   );
 }
 
-function HomePage({ questions, loading }) {
+function HomePage({ questions, loading, onLoadMore }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
@@ -101,7 +107,7 @@ function HomePage({ questions, loading }) {
                   View all
                 </Link>
               </div>
-              <QuestionList questions={questions} loading={loading} />
+              <QuestionList questions={questions} loading={loading} onLoadMore={onLoadMore} />
             </div>
           </div>
           
@@ -126,10 +132,11 @@ function App() {
   const [toast, setToast] = useState({ visible: false, message: '' });
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [offset, setOffset] = useState(0); // New state for pagination
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = async (offset) => {
     try {
-      const response = await fetch('/api/questions'); // Assuming API endpoint
+      const response = await fetch(`/api/questions?offset=${offset}`); // Assuming API endpoint with offset
       if (!response.ok) {
         throw new Error('Failed to fetch questions');
       }
@@ -142,7 +149,7 @@ function App() {
   };
 
   useEffect(() => {
-    fetchQuestions()
+    fetchQuestions(offset)
       .then(data => {
         setQuestions(data);
         setLoading(false);
@@ -151,7 +158,7 @@ function App() {
         console.error('Error fetching questions:', error);
         setLoading(false);
       });
-  }, []);
+  }, [offset]);
 
   const handleAuthSuccess = (message) => {
     setIsAuthModalOpen(false);
@@ -162,16 +169,20 @@ function App() {
     setToast({ visible: false, message: '' });
   };
 
+  const handleLoadMore = () => {
+    setOffset(offset + 10); // Load next 10 questions
+  };
+
   return (
     <Router>
       <Header onAuthClick={() => setIsAuthModalOpen(true)} />
       
       <Routes>
-        <Route path="/" element={<HomePage questions={questions} loading={loading} />} />
+        <Route path="/" element={<HomePage questions={questions} loading={loading} onLoadMore={handleLoadMore} />} />
         <Route path="/ask" element={<QuestionForm onSuccess={() => {
           setToast({ visible: true, message: 'Question posted successfully!' });
           // Refresh questions
-          fetchQuestions().then(data => setQuestions(data));
+          fetchQuestions(0).then(data => setQuestions(data));
         }} />} />
         <Route path="/search" element={<SearchResults />} />
         {/* Add more routes as needed */}
