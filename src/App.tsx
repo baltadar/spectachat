@@ -1,248 +1,171 @@
-// App.js
-import React, { useState, useEffect, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Header } from './components/Header';
-import { Footer } from './components/Footer';
-import { LoadingSpinner } from './components/LoadingSpinner';
+import { CategoryList } from './components/CategoryList';
+import { QuestionForm } from './components/QuestionForm';
+import { SearchResults } from './pages/SearchResults';
+import { AuthModal } from './components/AuthModal';
+import { AdUnit } from './components/AdUnit';
 import { Toast } from './components/Toast';
-import { useAuth } from './hooks/useAuth';
 
-// Lazy loaded components
-const HomePage = React.lazy(() => import('./pages/HomePage'));
-const QuestionForm = React.lazy(() => import('./components/QuestionForm'));
-const SearchResults = React.lazy(() => import('./pages/SearchResults'));
-const AuthModal = React.lazy(() => import('./components/AuthModal'));
-const UserProfile = React.lazy(() => import('./pages/UserProfile'));
-const QuestionDetail = React.lazy(() => import('./pages/QuestionDetail'));
-
-function App() {
-  const { user, isAuthenticated, loading } = useAuth();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
-  };
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
-  return (
-    <Router>
-      <div className="min-h-screen flex flex-col">
-        <Header 
-          user={user}
-          isAuthenticated={isAuthenticated}
-          onAuthClick={() => setIsAuthModalOpen(true)}
-        />
-        
-        <main className="flex-grow">
-          <Suspense fallback={<LoadingSpinner />}>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/ask" element={<QuestionForm showToast={showToast} />} />
-              <Route path="/search" element={<SearchResults />} />
-              <Route path="/questions/:id" element={<QuestionDetail />} />
-              <Route 
-                path="/profile" 
-                element={
-                  isAuthenticated ? 
-                    <UserProfile /> : 
-                    <Navigate to="/" replace />
-                }
-              />
-            </Routes>
-          </Suspense>
-        </main>
-
-        <Footer />
-
-        <Suspense fallback={null}>
-          <AuthModal
-            isOpen={isAuthModalOpen}
-            onClose={() => setIsAuthModalOpen(false)}
-            onSuccess={(message) => {
-              showToast(message);
-              setIsAuthModalOpen(false);
-            }}
-          />
-        </Suspense>
-
-        {toast.show && (
-          <Toast message={toast.message} type={toast.type} />
-        )}
-      </div>
-    </Router>
-  );
-}
-
-export default App;
-
-// components/AuthModal.jsx
-import React, { useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
-
-export default function AuthModal({ isOpen, onClose, onSuccess }) {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { login, signup } = useAuth();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    
-    try {
-      if (isSignUp) {
-        await signup(email, password);
-        onSuccess('Successfully signed up! Please sign in with your new account.');
-        setIsSignUp(false);
-      } else {
-        await login(email, password);
-        onSuccess('Successfully signed in!');
+// New Toast component for notifications
+function Toast({ message, isVisible, onClose }) {
+  useEffect(() => {
+    if (isVisible) {
+      const timer = setTimeout(() => {
         onClose();
-      }
-    } catch (err) {
-      setError(err.message);
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [isVisible, onClose]);
 
-  if (!isOpen) return null;
+  if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-8 max-w-md w-full">
-        <h2 className="text-2xl font-bold mb-6">
-          {isSignUp ? 'Create Account' : 'Sign In'}
-        </h2>
-
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700"
-          >
-            {isSignUp ? 'Sign Up' : 'Sign In'}
-          </button>
-        </form>
-
-        <button
-          onClick={() => setIsSignUp(!isSignUp)}
-          className="mt-4 text-sm text-indigo-600 hover:text-indigo-500"
-        >
-          {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
-        </button>
-
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-500"
-        >
-          ✕
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// components/Toast.jsx
-export function Toast({ message, type = 'success' }) {
-  const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-  
-  return (
-    <div className={`fixed bottom-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50`}>
+    <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
       {message}
     </div>
   );
 }
 
-// hooks/useAuth.js
-import { useState, useEffect, createContext, useContext } from 'react';
-
-const AuthContext = createContext(null);
-
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Check if user is logged in (e.g., check localStorage or JWT)
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          // Validate token and get user data
-          const userData = await validateToken(token);
-          setUser(userData);
-        }
-      } catch (error) {
-        console.error('Auth error:', error);
-        localStorage.removeItem('token');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  const login = async (email, password) => {
-    // Implement login logic
-    const response = await loginUser(email, password);
-    setUser(response.user);
-    localStorage.setItem('token', response.token);
-  };
-
-  const signup = async (email, password) => {
-    // Implement signup logic
-    const response = await signupUser(email, password);
-    // Don't automatically log in after signup
-    return response;
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('token');
-  };
-
+function HomePage({ questions = [], loading = true }) {
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, signup, logout }}>
-      {children}
-    </AuthContext.Provider>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+        {/* Top banner ad */}
+        <AdUnit slot="banner-top" className="mb-8" />
+        
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Your Spectacles Knowledge Hub
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Ask questions, share experiences, and learn everything about prescription and non-prescription eyewear.
+          </p>
+          <Link
+            to="/ask"
+            className="mt-6 inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition"
+          >
+            Ask a Question
+          </Link>
+        </div>
+
+        <div className="mb-12">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Browse Categories</h2>
+          <CategoryList />
+        </div>
+
+        <div className="lg:flex lg:space-x-8">
+          <div className="flex-1">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900">Recent Questions</h2>
+                <Link
+                  to="/questions"
+                  className="text-indigo-600 hover:text-indigo-700 font-medium"
+                >
+                  View all
+                </Link>
+              </div>
+              
+              {loading ? (
+                <div className="text-center text-gray-500 py-8">
+                  Loading questions...
+                </div>
+              ) : questions.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  No questions yet. Be the first to ask!
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {questions.map((question) => (
+                    <div key={question.id} className="border-b border-gray-200 last:border-0 pb-6">
+                      <Link to={`/questions/${question.id}`}>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          {question.title}
+                        </h3>
+                        <p className="text-gray-600">{question.excerpt}</p>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="hidden lg:block w-[300px]">
+            <AdUnit slot="sidebar" format="rectangle" className="sticky top-24" />
+          </div>
+        </div>
+      </div>
+
+      {/* Footer ad */}
+      <div className="fixed bottom-0 w-full bg-white border-t border-gray-200 p-4">
+        <div className="max-w-7xl mx-auto">
+          <AdUnit slot="footer" className="mx-auto" />
+        </div>
+      </div>
+    </div>
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+function App() {
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '' });
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch questions when component mounts
+    fetchQuestions()
+      .then(data => {
+        setQuestions(data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching questions:', error);
+        setLoading(false);
+      });
+  }, []);
+
+  const handleAuthSuccess = (message) => {
+    setIsAuthModalOpen(false);
+    setToast({ visible: true, message });
+  };
+
+  const handleToastClose = () => {
+    setToast({ visible: false, message: '' });
+  };
+
+  return (
+    <Router>
+      <Header onAuthClick={() => setIsAuthModalOpen(true)} />
+      
+      <Routes>
+        <Route path="/" element={<HomePage questions={questions} loading={loading} />} />
+        <Route path="/ask" element={<QuestionForm onSuccess={() => {
+          setToast({ visible: true, message: 'Question posted successfully!' });
+          // Refresh questions
+          fetchQuestions().then(data => setQuestions(data));
+        }} />} />
+        <Route path="/search" element={<SearchResults />} />
+        {/* Add more routes as needed */}
+      </Routes>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSignupSuccess={() => handleAuthSuccess('You have successfully signed up. Please use your details to sign in.')}
+        onSigninSuccess={() => handleAuthSuccess('Successfully signed in!')}
+      />
+
+      <Toast
+        message={toast.message}
+        isVisible={toast.visible}
+        onClose={handleToastClose}
+      />
+    </Router>
+  );
+}
+
+export default App;
