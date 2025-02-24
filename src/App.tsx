@@ -1,200 +1,29 @@
-import React, { useState, useEffect } from 'react';
+// App.js
+import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Header } from './components/Header';
-import { CategoryList } from './components/CategoryList';
-import { QuestionForm } from './components/QuestionForm';
-import { SearchResults } from './pages/SearchResults';
-import { AuthModal } from './components/AuthModal';
-import { AdUnit } from './components/AdUnit';
 import { Footer } from './components/Footer';
 import { LoadingSpinner } from './components/LoadingSpinner';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import { Toast } from './components/Toast';
 import { useAuth } from './hooks/useAuth';
-import { useQuestions } from './hooks/useQuestions';
 
-// New components
-const QuestionDetails = React.lazy(() => import('./pages/QuestionDetails'));
+// Lazy loaded components
+const HomePage = React.lazy(() => import('./pages/HomePage'));
+const QuestionForm = React.lazy(() => import('./components/QuestionForm'));
+const SearchResults = React.lazy(() => import('./pages/SearchResults'));
+const AuthModal = React.lazy(() => import('./components/AuthModal'));
 const UserProfile = React.lazy(() => import('./pages/UserProfile'));
-const CategoryPage = React.lazy(() => import('./pages/CategoryPage'));
-const NotFound = React.lazy(() => import('./pages/NotFound'));
-
-function HomePage() {
-  const { questions, isLoading, error } = useQuestions();
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [showNewsletterModal, setShowNewsletterModal] = useState(false);
-
-  // Show newsletter modal after 30 seconds if not subscribed
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const hasSubscribed = localStorage.getItem('newsletterSubscribed');
-      if (!hasSubscribed) {
-        setShowNewsletterModal(true);
-      }
-    }, 30000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const filteredQuestions = questions?.filter(q => 
-    selectedCategory === 'all' || q.category === selectedCategory
-  );
-
-  return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
-          {/* Hero Section */}
-          <section className="text-center mb-12">
-            <h1 className="text-5xl font-bold text-gray-900 mb-4">
-              Your Spectacles Knowledge Hub
-            </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-              Ask questions, share experiences, and learn everything about prescription 
-              and non-prescription eyewear from our community of experts.
-            </p>
-            <div className="flex justify-center gap-4">
-              <Link
-                to="/ask"
-                className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition"
-              >
-                Ask a Question
-              </Link>
-              <Link
-                to="/categories"
-                className="bg-white text-indigo-600 px-6 py-3 rounded-lg border border-indigo-600 hover:bg-indigo-50 transition"
-              >
-                Browse Topics
-              </Link>
-            </div>
-          </section>
-
-          {/* Featured Content */}
-          <section className="mb-12">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Popular Categories</h2>
-            <CategoryList 
-              selectedCategory={selectedCategory}
-              onCategorySelect={setSelectedCategory}
-            />
-          </section>
-
-          {/* Main Content Area */}
-          <div className="lg:flex lg:space-x-8">
-            <div className="flex-1">
-              {/* Questions Section */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-semibold text-gray-900">Recent Questions</h2>
-                  <div className="flex items-center gap-4">
-                    <select 
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="rounded-md border-gray-300"
-                    >
-                      <option value="all">All Categories</option>
-                      <option value="prescription">Prescription</option>
-                      <option value="sunglasses">Sunglasses</option>
-                      <option value="contact-lenses">Contact Lenses</option>
-                      <option value="eye-health">Eye Health</option>
-                    </select>
-                    <Link
-                      to="/questions"
-                      className="text-indigo-600 hover:text-indigo-700 font-medium"
-                    >
-                      View all
-                    </Link>
-                  </div>
-                </div>
-
-                {isLoading ? (
-                  <LoadingSpinner />
-                ) : error ? (
-                  <div className="text-center text-red-600 py-8">
-                    Error loading questions. Please try again later.
-                  </div>
-                ) : filteredQuestions?.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
-                    No questions found in this category.
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {filteredQuestions?.map((question) => (
-                      <div 
-                        key={question.id} 
-                        className="border-b border-gray-200 last:border-0 pb-6"
-                      >
-                        <Link 
-                          to={`/questions/${question.id}`}
-                          className="block hover:bg-gray-50 rounded-lg p-4 transition"
-                        >
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">
-                            {question.title}
-                          </h3>
-                          <p className="text-gray-600 mb-4">{question.excerpt}</p>
-                          <div className="flex items-center text-sm text-gray-500">
-                            <span>{question.author}</span>
-                            <span className="mx-2">•</span>
-                            <span>{question.date}</span>
-                            <span className="mx-2">•</span>
-                            <span>{question.answers} answers</span>
-                          </div>
-                        </Link>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <aside className="hidden lg:block w-[300px] space-y-6">
-              <AdUnit slot="sidebar" format="rectangle" className="sticky top-24" />
-              
-              {/* Expert Panel */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold mb-4">Featured Experts</h3>
-                <div className="space-y-4">
-                  {/* Add expert profiles here */}
-                </div>
-              </div>
-
-              {/* Resources */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold mb-4">Helpful Resources</h3>
-                <ul className="space-y-2">
-                  <li>
-                    <Link to="/guide/choosing-frames" className="text-indigo-600 hover:text-indigo-700">
-                      Guide to Choosing Frames
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/guide/prescription-reading" className="text-indigo-600 hover:text-indigo-700">
-                      Understanding Your Prescription
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/guide/lens-types" className="text-indigo-600 hover:text-indigo-700">
-                      Types of Lenses Explained
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-            </aside>
-          </div>
-        </main>
-
-        <Footer />
-
-        {/* Newsletter Modal */}
-        {showNewsletterModal && (
-          <NewsletterModal onClose={() => setShowNewsletterModal(false)} />
-        )}
-      </div>
-    </ErrorBoundary>
-  );
-}
+const QuestionDetail = React.lazy(() => import('./pages/QuestionDetail'));
 
 function App() {
-  const { isAuthenticated, user, loading } = useAuth();
-  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+  const { user, isAuthenticated, loading } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+  };
 
   if (loading) {
     return <LoadingSpinner />;
@@ -202,42 +31,218 @@ function App() {
 
   return (
     <Router>
-      <ErrorBoundary>
+      <div className="min-h-screen flex flex-col">
         <Header 
-          onAuthClick={() => setIsAuthModalOpen(true)}
           user={user}
           isAuthenticated={isAuthenticated}
+          onAuthClick={() => setIsAuthModalOpen(true)}
         />
         
-        <React.Suspense fallback={<LoadingSpinner />}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route 
-              path="/ask" 
-              element={
-                isAuthenticated ? <QuestionForm /> : <Navigate to="/login" />
-              } 
-            />
-            <Route path="/search" element={<SearchResults />} />
-            <Route path="/questions/:id" element={<QuestionDetails />} />
-            <Route path="/categories/:category" element={<CategoryPage />} />
-            <Route 
-              path="/profile" 
-              element={
-                isAuthenticated ? <UserProfile /> : <Navigate to="/login" />
-              }
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </React.Suspense>
+        <main className="flex-grow">
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/ask" element={<QuestionForm showToast={showToast} />} />
+              <Route path="/search" element={<SearchResults />} />
+              <Route path="/questions/:id" element={<QuestionDetail />} />
+              <Route 
+                path="/profile" 
+                element={
+                  isAuthenticated ? 
+                    <UserProfile /> : 
+                    <Navigate to="/" replace />
+                }
+              />
+            </Routes>
+          </Suspense>
+        </main>
 
-        <AuthModal
-          isOpen={isAuthModalOpen}
-          onClose={() => setIsAuthModalOpen(false)}
-        />
-      </ErrorBoundary>
+        <Footer />
+
+        <Suspense fallback={null}>
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            onSuccess={(message) => {
+              showToast(message);
+              setIsAuthModalOpen(false);
+            }}
+          />
+        </Suspense>
+
+        {toast.show && (
+          <Toast message={toast.message} type={toast.type} />
+        )}
+      </div>
     </Router>
   );
 }
 
 export default App;
+
+// components/AuthModal.jsx
+import React, { useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
+
+export default function AuthModal({ isOpen, onClose, onSuccess }) {
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const { login, signup } = useAuth();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    try {
+      if (isSignUp) {
+        await signup(email, password);
+        onSuccess('Successfully signed up! Please sign in with your new account.');
+        setIsSignUp(false);
+      } else {
+        await login(email, password);
+        onSuccess('Successfully signed in!');
+        onClose();
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-8 max-w-md w-full">
+        <h2 className="text-2xl font-bold mb-6">
+          {isSignUp ? 'Create Account' : 'Sign In'}
+        </h2>
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700"
+          >
+            {isSignUp ? 'Sign Up' : 'Sign In'}
+          </button>
+        </form>
+
+        <button
+          onClick={() => setIsSignUp(!isSignUp)}
+          className="mt-4 text-sm text-indigo-600 hover:text-indigo-500"
+        >
+          {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
+        </button>
+
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-500"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// components/Toast.jsx
+export function Toast({ message, type = 'success' }) {
+  const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+  
+  return (
+    <div className={`fixed bottom-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50`}>
+      {message}
+    </div>
+  );
+}
+
+// hooks/useAuth.js
+import { useState, useEffect, createContext, useContext } from 'react';
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if user is logged in (e.g., check localStorage or JWT)
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Validate token and get user data
+          const userData = await validateToken(token);
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error('Auth error:', error);
+        localStorage.removeItem('token');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  const login = async (email, password) => {
+    // Implement login logic
+    const response = await loginUser(email, password);
+    setUser(response.user);
+    localStorage.setItem('token', response.token);
+  };
+
+  const signup = async (email, password) => {
+    // Implement signup logic
+    const response = await signupUser(email, password);
+    // Don't automatically log in after signup
+    return response;
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('token');
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, signup, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export const useAuth = () => useContext(AuthContext);
