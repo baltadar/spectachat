@@ -141,9 +141,10 @@ function App() {
         throw new Error('Failed to fetch questions');
       }
       const data = await response.json();
+      console.log('Fetched questions:', data); // Debugging: Check if data is fetched correctly
       return data;
     } catch (error) {
-      console.error('Error fetching questions:', error);
+      console.error('Error fetching questions:', error); // Debugging: Check for any errors
       return [];
     }
   };
@@ -151,11 +152,12 @@ function App() {
   useEffect(() => {
     fetchQuestions(offset)
       .then(data => {
+        console.log('Received questions:', data); // Debugging: Verify data received
         setQuestions(data);
         setLoading(false);
       })
       .catch(error => {
-        console.error('Error fetching questions:', error);
+        console.error('Error fetching questions:', error); // Debugging: Handle fetch errors
         setLoading(false);
       });
   }, [offset]);
