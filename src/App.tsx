@@ -40,7 +40,7 @@ function HomePage({ questions = [], loading = true }) {
             Your Spectacles Knowledge Hub
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Ask questions, share experiences, and learn everything about prescription and non-prescription eyewear.
+            Ask questions, share experiences, and learn everything about eyewear.
           </p>
           <Link
             to="/ask"
