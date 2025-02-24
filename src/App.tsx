@@ -28,7 +28,41 @@ function Toast({ message, isVisible, onClose }) {
   );
 }
 
-function HomePage({ questions = [], loading = true }) {
+// Extracted QuestionList component
+function QuestionList({ questions, loading }) {
+  if (loading) {
+    return (
+      <div className="text-center text-gray-500 py-8">
+        Loading questions...
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="text-center text-gray-500 py-8">
+        No questions yet. Be the first to ask!
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {questions.map((question) => (
+        <div key={question.id} className="border-b border-gray-200 last:border-0 pb-6">
+          <Link to={`/questions/${question.id}`}>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {question.title}
+            </h3>
+            <p className="text-gray-600">{question.excerpt}</p>
+          </Link>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HomePage({ questions, loading }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
@@ -67,29 +101,7 @@ function HomePage({ questions = [], loading = true }) {
                   View all
                 </Link>
               </div>
-              
-              {loading ? (
-                <div className="text-center text-gray-500 py-8">
-                  Loading questions...
-                </div>
-              ) : questions.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
-                  No questions yet. Be the first to ask!
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {questions.map((question) => (
-                    <div key={question.id} className="border-b border-gray-200 last:border-0 pb-6">
-                      <Link to={`/questions/${question.id}`}>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
-                          {question.title}
-                        </h3>
-                        <p className="text-gray-600">{question.excerpt}</p>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <QuestionList questions={questions} loading={loading} />
             </div>
           </div>
           
@@ -115,8 +127,21 @@ function App() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchQuestions = async () => {
+    try {
+      const response = await fetch('/api/questions'); // Assuming API endpoint
+      if (!response.ok) {
+        throw new Error('Failed to fetch questions');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      return [];
+    }
+  };
+
   useEffect(() => {
-    // Fetch questions when component mounts
     fetchQuestions()
       .then(data => {
         setQuestions(data);
